@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 import MySocialLogo from "../../components/svgs/MySociallogo";
@@ -8,27 +8,59 @@ import { FaUser } from "react-icons/fa";
 import { MdPassword } from "react-icons/md";
 import { MdDriveFileRenameOutline } from "react-icons/md";
 
+import { useMutation } from "@tanstack/react-query";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import toast from "react-hot-toast";
+
 const SignUpPage = () => {
-  const [formData, setFormData] = useState({
+  const formStructure = {
     email: "",
-    username: "",
+    userName: "",
     fullName: "",
     password: "",
+  };
+
+  const [formData, setFormData] = useState(formStructure);
+  const navigate = useNavigate();
+
+  const { mutate, isError, isPending, error } = useMutation({
+    mutationFn: async ({ email, userName, fullName, password }) => {
+      const res = await fetch("/api/v1/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, userName, fullName, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || data.message || "Something went wrong");
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Account created successfully");
+      setFormData(formStructure);
+      navigate("/login");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error(error.message || "Something went wrong");
+    },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(formData);
+    mutate(formData);
   };
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const isError = false;
-
   return (
-    <div className="max-w-screen-xl mx-auto flex min-h-screen px-10 ">
+    <div className="w-full md:w-3/4 mx-auto flex min-h-screen px-10 ">
       <div className="flex-1 hidden lg:flex items-center  justify-center">
         <MySocialLogo className=" lg:w-2/3 fill-white" />
       </div>
@@ -57,9 +89,9 @@ const SignUpPage = () => {
                 type="text"
                 className="grow "
                 placeholder="Username"
-                name="username"
+                name="userName"
                 onChange={handleInputChange}
-                value={formData.username}
+                value={formData.userName}
               />
             </label>
             <label className="input input-bordered rounded flex items-center gap-2 w-full">
@@ -86,9 +118,13 @@ const SignUpPage = () => {
             />
           </label>
           <button className="btn rounded-full btn-primary text-white">
-            Sign up
+            {isPending ? "Loading..." : "Sign up"}
           </button>
-          {isError && <p className="text-red-500">Something went wrong</p>}
+          {isError && (
+            <p className="text-red-500">
+              {error.message || "Something went wrong"}
+            </p>
+          )}
         </form>
         <div className="flex flex-col w-full sm:w-3/4 md:w-2/3 gap-2 mt-4">
           <p className=" text-lg">Already have an account?</p>
