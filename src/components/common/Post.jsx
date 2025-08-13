@@ -75,9 +75,9 @@ const Post = ({ post }) => {
   //     console.log("Auth user:", authUser);
   //   }, [postOwner, authUser]);
 
-  useEffect(()=>{
-    console.log(post.img);
-  }, [post])
+  // useEffect(()=>{
+  //   console.log(post.img);
+  // }, [post])
 
   return (
     <>
