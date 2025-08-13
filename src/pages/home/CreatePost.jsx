@@ -66,7 +66,7 @@ const CreatePost = () => {
               className="fill-blue-700 w-6 h-6 cursor-pointer"
               onClick={() => imgRef.current.click()}
             />
-            <BsEmojiSmileFill className="fill-blue-700 w-5 h-5 cursor-pointer" />
+            {/* <BsEmojiSmileFill className="fill-blue-700 w-5 h-5 cursor-pointer" /> */}
           </div>
           <input type="file" accept="image/*" hidden ref={imgRef} onChange={handleImgChange} />
           <button className="btn btn-info rounded-full btn-sm text-white px-4">
