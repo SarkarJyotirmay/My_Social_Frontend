@@ -56,7 +56,7 @@ const Post = ({ post }) => {
 
   const isMyPost = authUser?.user._id === postOwner._id;
 
-  const formattedDate = "1h";
+  const formattedDate = post.updatedAtFormatted || "1h";
 
   const isCommenting = false;
 
@@ -74,6 +74,10 @@ const Post = ({ post }) => {
   //     console.log("Post owner:", postOwner);
   //     console.log("Auth user:", authUser);
   //   }, [postOwner, authUser]);
+
+  useEffect(()=>{
+    console.log(post.img);
+  }, [post])
 
   return (
     <>

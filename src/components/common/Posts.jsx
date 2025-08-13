@@ -51,9 +51,9 @@ const Posts = ({ feedType }) => {
     refetch();
   }, [feedType, refetch]);
 
-//   useEffect(() => {
-//     console.log(posts);
-//   }, [posts]);
+  useEffect(() => {
+    console.log(posts);
+  }, [posts]);
 
   return (
     <>
