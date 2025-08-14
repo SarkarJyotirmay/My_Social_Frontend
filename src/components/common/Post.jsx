@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import LoadingSpinner from "./LoadingSpinner";
+import useShowTimeReverse from "../../hooks/useShowTimeReverse";
 
 const Post = ({ post }) => {
   const [comment, setComment] = useState("");
@@ -89,6 +90,41 @@ const Post = ({ post }) => {
     },
   });
 
+  // Mutation to comment on a post
+  const {mutate: commentOnPost, isPending: isCommenting} = useMutation({
+    mutationFn: async()=>{
+      const res = await fetch(`/api/v1/posts/comment/${post._id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ comment: comment }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || "Failed to comment on post");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      // Handle success, e.g., update the post comments
+      queryClient.setQueryData(["posts"], (oldData) => {
+        return oldData.map((p) => {
+          if (p._id === post._id) {
+            return { ...p, comments: [...p.comments, data.comment] };
+          }
+          return p;
+        });
+      });
+      toast.success(data.message || "Comment added successfully");
+      setComment(""); // Clear the comment input
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to comment on post");
+      console.log(error);
+    }
+  })
+
   const postOwner = post.user;
 
   const isLiked = post.likes.some((like) => like === authUser?.user._id);
@@ -97,7 +133,7 @@ const Post = ({ post }) => {
 
   const formattedDate = post.updatedAtFormatted || "1h";
 
-  const isCommenting = true;
+  // const isCommenting = true;
 
   const handleDeletePost = () => {
     deletePost(post._id);
@@ -105,6 +141,7 @@ const Post = ({ post }) => {
 
   const handlePostComment = (e) => {
     e.preventDefault();
+    commentOnPost();
   };
 
   const handleLikePost = () => {
@@ -213,7 +250,10 @@ const Post = ({ post }) => {
                               {comment.user.fullName}
                             </span>
                             <span className="text-gray-700 text-sm">
-                              @{comment.user.username}
+                              @{comment.user.userName}
+                            </span>
+                            <span className="text-blue-400 text-sm  ml-2">
+                              · {useShowTimeReverse(comment.updatedAt)}
                             </span>
                           </div>
                           <div className="text-sm">{comment.text}</div>
