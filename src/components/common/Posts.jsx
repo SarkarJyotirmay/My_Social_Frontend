@@ -23,7 +23,7 @@ const Posts = ({ feedType }) => {
     refetch,
 	isRefetching
   } = useQuery({
-    queryKey: ["posts", feedType], // include feedType to avoid manual refetch
+    queryKey: ["posts" ], // include feedType to avoid manual refetch
     queryFn: async () => {
      try {
 		 const res = await fetch(POST_ENDPOINT);

@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 
 import Posts from "../../components/common/Posts";
 import ProfileHeaderSkeleton from "./ProfileHeaderSkeleton";
@@ -11,12 +11,37 @@ import { FaArrowLeft } from "react-icons/fa6";
 import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import useFollow from "../../hooks/useFollow.jsx";
 
 const ProfilePage = () => {
-	const {data: authUser, isError, error, isPending} = useQuery({
-		queryKey: ["authUser"],
+	const {userName} = useParams();
+
+	const {data: profileUser, isLoading, isPending, isError, error} = useQuery({
+		queryKey: ["profileUser"],
+		queryFn: async() => {
+			try {
+				// fetch api
+			const res = await fetch(`/api/v1/users/profile/${userName}`)
+			const data = await res.json()
+			if (!res.ok || !data.success) {
+				throw new Error(data.message || "Failed to fetch user data");
+			}
+			if (data.error) {
+				throw new Error(data.error);
+			}
+			return data.user || null;
+			} catch (error) {
+				console.error("Error fetching profile user:", error);
+				return null; // Return null if there's an error
+			}
+		},
 	})
+
+	const {data: authData} = useQueryClient().getQueryData(["authUser"])
+	? { data: useQueryClient().getQueryData(["authUser"]) }	
+	: { data: null };
+	const authUser = authData?.user || null;
 
 	const [coverImg, setCoverImg] = useState(null);
 	const [profileImg, setProfileImg] = useState(null);
@@ -25,10 +50,10 @@ const ProfilePage = () => {
 	const coverImgRef = useRef(null);
 	const profileImgRef = useRef(null);
 
-	const isLoading = false;
-	const isMyProfile = true;
+	// const isLoading = false;
+	const isMyProfile = profileUser?._id === authUser?._id;
 
-	const user = {
+	const user = profileUser || {
 		_id: "1",
 		fullName: "John Doe",
 		username: "johndoe",
@@ -39,6 +64,10 @@ const ProfilePage = () => {
 		following: ["1", "2", "3"],
 		followers: ["1", "2", "3"],
 	};
+
+	const isFollowing = authUser?.following?.includes(user._id);
+
+	const {follow} = useFollow()
 
 	const handleImgChange = (e, state) => {
 		const file = e.target.files[0];
@@ -51,6 +80,11 @@ const ProfilePage = () => {
 			reader.readAsDataURL(file);
 		}
 	};
+
+	// useEffect(()=>{
+	// 	console.log("authUser:", authUser);
+	// 	console.log("profileUser:", profileUser);
+	// }, [profileUser, authUser])
 
 	return (
 		<>
@@ -118,9 +152,11 @@ const ProfilePage = () => {
 								{!isMyProfile && (
 									<button
 										className='btn btn-outline rounded-full btn-sm'
-										onClick={() => alert("Followed successfully")}
+										onClick={() => {
+											follow(profileUser._id);
+										}}
 									>
-										Follow
+										{isFollowing ? "Unfollow" : "Follow"}
 									</button>
 								)}
 								{(coverImg || profileImg) && (

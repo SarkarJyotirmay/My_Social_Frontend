@@ -18,11 +18,12 @@ const Post = ({ post }) => {
     ? { data: useQueryClient().getQueryData(["authUser"]) }
     : { data: null };
 
+  // Mutation to delete a post
   const {
     mutate: deletePost,
     isError,
     error,
-    isPending,
+    isPending: isDeleting,
   } = useMutation({
     mutationFn: async (postId) => {
       const res = await fetch(`/api/v1/posts/delete/${postId}`, {
@@ -50,15 +51,53 @@ const Post = ({ post }) => {
     },
   });
 
+  // Mutation to like a post
+  const { mutate: likePost, isPending: isLiking } = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/v1/posts/like/${post._id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || "Failed to like post");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      const updatedLikes = data.updatedLikes;
+      
+      // Not best practice to invalidate all posts, but for simplicity
+      // queryClient.invalidateQueries(["posts"]);
+      queryClient.setQueryData(["posts"], (oldData) => {
+        // console.log("old data",oldData);
+        
+				return oldData.map((p) => {
+					if (p._id === post._id) {
+						return { ...p, likes: updatedLikes };
+					}
+					return p;
+				});
+			});
+      toast.success(data.message);
+    },
+    onError: (error) => {
+      toast.error(error.message || data.message || "Failed to like post");
+      console.log(error);
+    },
+  });
+
   const postOwner = post.user;
 
-  const isLiked = false;
+  const isLiked = post.likes.some((like) => like === authUser?.user._id);
 
   const isMyPost = authUser?.user._id === postOwner._id;
 
   const formattedDate = post.updatedAtFormatted || "1h";
 
-  const isCommenting = false;
+  const isCommenting = true;
 
   const handleDeletePost = () => {
     deletePost(post._id);
@@ -68,16 +107,19 @@ const Post = ({ post }) => {
     e.preventDefault();
   };
 
-  const handleLikePost = () => {};
+  const handleLikePost = () => {
+    if (isLiking) return; // Prevent multiple clicks
+    likePost();
+  };
 
   //   useEffect(() => {
   //     console.log("Post owner:", postOwner);
   //     console.log("Auth user:", authUser);
   //   }, [postOwner, authUser]);
 
-  // useEffect(()=>{
-  //   console.log(post.img);
-  // }, [post])
+  // useEffect(() => {
+  //   console.log(post);
+  // }, [post]);
 
   return (
     <>
@@ -104,8 +146,8 @@ const Post = ({ post }) => {
             </span>
             {isMyPost && (
               <span className="flex justify-end flex-1">
-                {isPending ? (
-                  <LoadingSpinner size="sm"/>
+                {isDeleting ? (
+                  <LoadingSpinner size="sm" />
                 ) : (
                   <FaTrash
                     className="cursor-pointer hover:text-red-500"
@@ -190,11 +232,7 @@ const Post = ({ post }) => {
                       onChange={(e) => setComment(e.target.value)}
                     />
                     <button className="btn btn-primary rounded-full btn-sm text-white px-4">
-                      {isCommenting ? (
-                        <span className="loading loading-spinner loading-md"></span>
-                      ) : (
-                        "Post"
-                      )}
+                      {isCommenting ? <LoadingSpinner size="sm" /> : "Post"}
                     </button>
                   </form>
                 </div>
@@ -212,7 +250,8 @@ const Post = ({ post }) => {
                 className="flex gap-1 items-center group cursor-pointer"
                 onClick={handleLikePost}
               >
-                {!isLiked && (
+                {isLiking && <LoadingSpinner size="sm" />}
+                {!isLiked && !isLiking && (
                   <FaRegHeart className="w-4 h-4 cursor-pointer text-slate-500 group-hover:text-pink-500" />
                 )}
                 {isLiked && (

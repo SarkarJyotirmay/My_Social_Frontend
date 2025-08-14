@@ -150,9 +150,7 @@ const Sidebar = () => {
   const { data: authData } = useQueryClient().getQueryData(["authUser"])
     ? { data: useQueryClient().getQueryData(["authUser"]) }
     : { data: null };
-  // const {data: authData} = useQuery({
-  //   queryKey: ["authUser"],
-  // })
+  
 
   const authUser = authData?.user || null;
 
